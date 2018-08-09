@@ -1,0 +1,67 @@
+version: 2
+
+aliases:
+  - &build-image-tag
+    name: Build image tag
+    command: |
+      TAG=$CIRCLE_BRANCH-$(git rev-parse --short HEAD)-$(date -Idate | tr -d -)
+      echo "export TAG=$TAG" >> $BASH_ENV
+
+jobs:
+  build:
+    docker:
+      - image: ekidd/rust-musl-builder
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - build-cache-v{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "Cargo.lock" }}
+            - build-cache-v{{ .Environment.CIRCLECI_CACHE_VERSION }}-
+            - build-cache-
+          paths:
+            - /home/rust/.cargo/registry
+      - run:
+          name: Build
+          command: |
+            cargo build
+      - save_cache:
+          key: build-cache-v{{ .Environment.CIRCLECI_CACHE_VERSION }}-{{ checksum "Cargo.lock" }}
+          paths:
+            - /home/rust/.cargo/registry
+
+  build-docker-image:
+    working_directory: /workdir
+    docker:
+      - image: docker:17.06.2-ce-git
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 17.05.0-ce
+      - run:
+          *build-image-tag
+      - run:
+          name: Build production Docker image
+          command: |
+            source $BASH_ENV
+
+            docker login -u $DOCKER_HUB_USERNAME -p $DOCKER_HUB_PASSWORD
+
+            docker build -t herpinc/salvage_job_kicker:$TAG .
+            docker push herpinc/salvage_job_kicker:$TAG
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build
+  build-docker-image:
+    jobs:
+      - build-docker-image:
+          context: docker-hub
+    triggers:
+      - schedule:
+          cron: '0 19 * * *' # UTC
+          filters:
+            branches:
+              only:
+                - master
