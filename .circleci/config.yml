@@ -32,11 +32,11 @@ jobs:
   build-docker-image:
     working_directory: /workdir
     docker:
-      - image: docker:17.06.2-ce-git
+      - image: docker:stable-git
     steps:
       - checkout
       - setup_remote_docker:
-          version: 17.05.0-ce
+          version: stable
       - run:
           *build-image-tag
       - run:
