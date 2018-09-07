@@ -54,7 +54,19 @@ workflows:
   build:
     jobs:
       - build
-  build-docker-image:
+      - request-building-docker-image:
+          type: approval
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+      - build-docker-image:
+          requires:
+            - request-building-docker-image
+          context: docker-hub
+  nightly:
     jobs:
       - build-docker-image:
           context: docker-hub
