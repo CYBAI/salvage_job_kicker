@@ -54,7 +54,7 @@ fn main() {
     let len = creds.len();
 
     for cred in creds {
-        let msg = Message::from_media_linkage_credential(cred, "Scrape:Candidacies");
+        let msg = Message::from_media_linkage_credential(cred, "candidacies:fetch");
         let msg_json = serde_json::to_string(&msg).unwrap();
 
         let req = SendMessageRequest {
