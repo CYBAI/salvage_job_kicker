@@ -8,19 +8,19 @@ extern crate rusoto_core;
 extern crate rusoto_sqs;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
 extern crate salvage_job_kicker;
+extern crate serde_json;
 
+use rusoto_core::Region;
+use rusoto_sqs::{SendMessageRequest, Sqs, SqsClient};
 use salvage_job_kicker::config::Config;
 use salvage_job_kicker::media_linkage_credential::MediaLinkageCredential;
 use salvage_job_kicker::message::Message;
-use rusoto_core::Region;
-use rusoto_sqs::{SendMessageRequest,Sqs,SqsClient};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Response {
-    media_linkage_credentials: Vec<MediaLinkageCredential>
+    media_linkage_credentials: Vec<MediaLinkageCredential>,
 }
 
 fn main() {
@@ -35,8 +35,10 @@ fn main() {
     let client = reqwest::Client::new();
     let mut res = client
         .get(&endpoint)
-        .header(reqwest::header::Authorization(format!("Bearer {}", config.auth_master_token)))
-        .send()
+        .header(reqwest::header::Authorization(format!(
+            "Bearer {}",
+            config.auth_master_token
+        ))).send()
         .unwrap();
 
     let status = res.status();
@@ -60,7 +62,7 @@ fn main() {
         let req = SendMessageRequest {
             queue_url: config.sqs_queue_url.to_owned(),
             message_body: msg_json,
-            .. SendMessageRequest::default()
+            ..SendMessageRequest::default()
         };
         sqs_client.send_message(req).sync().unwrap();
     }
